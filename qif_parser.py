@@ -79,36 +79,31 @@ class QIFParser:
     def parse(self, text):
         """
         parse QIF records and yield transaction tuples
+
+        text can be either a bytes object or a string
         """
 
         ttype = TTYPE_NORMAL
         records = []
+
+        # Handle string input...internally, we parse by bytes
+        if (isinstance(text, str)):
+            text = text.encode('utf-8')
+
         for r in self._recordize(text):
             if r.type == 'END':
-               transaction = QIFTransaction(ttype, copy.deepcopy(records))
-               records = []
-               yield transaction
+                transaction = QIFTransaction(ttype, copy.deepcopy(records))
+                ttype = TTYPE_NORMAL
+                records = []
+                yield transaction
+                continue #skip appending 'END'
 
             elif r.type == 'SPLIT':
                 ttype = TTYPE_SPLIT
 
             records.append(r)
                
-def test_qif_parser():
-    # TODO:  Move to tests
-    good_qif = "D11/ 8'16\nU-107.88\nT-107.88\nPVERIZON\nLUtilities\n^\nD11/ 9'16\nU-1,570.73\nPChecking\nLVisa\n^" # noqa
-    qif_parser = QIFParser()
-    for t in qif_parser.parse(good_qif):
-        assert(len(t.records) > 1)    
 
-    bad_qif = "D11/ 8'16\nU-107.88\nT-107.88\nPVERIZON\nQ^\nZ^" # no_qa
-
-    try:
-        for t in qif_parser.parse(bad_qif):
-            assert(False)
-    except SyntaxError as e:
-        assert("{}".format(e).find("Q^") != -1)
- 
 if __name__ == '__main__':
     import argparse
     import mmap
@@ -128,3 +123,4 @@ if __name__ == '__main__':
                 print("    {},{}".format(record.type, record.value_dict))
 
             transaction_num += 1
+        text_map.close()
