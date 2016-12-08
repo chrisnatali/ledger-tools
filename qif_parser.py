@@ -72,8 +72,6 @@ class QIFParser:
                 m = record_regex.match(text, position)
                 if m is not None:
                     position = m.span()[1] + 1
-                    print("{}, {}".format(m.groupdict(), type(m.groupdict())))
-                    
                     decoded_dict = {
                         k: decode_val(v) for k, v in m.groupdict().items()
                     }
