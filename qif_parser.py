@@ -7,6 +7,7 @@ import re
 import collections
 import copy
 
+
 """ 
 Transaction Record Syntax 
 
@@ -14,17 +15,18 @@ Define record types using named groups (to be referenced when processing later)
 """
 
 #TODO:  Can byte-like handle utf-8 characters?
-DATE = br'(?P<DATE>D(?P<month>[ 01]?[\d])/(?P<day>[ 0123][\d])\'(?P<year>[ \d][\d]))$'
-T_AMOUNT = br'(?P<T_AMOUNT>T(?P<amount>-?[\d,]+(\.[\d]+)?))$'
-U_AMOUNT = br'(?P<U_AMOUNT>U(?P<amount>-?[\d,]+(\.[\d]+)?))$'
-CLEARED = br'(?P<CLEARED>C(?P<value>[\*cXR]))$'
-PAYEE = br'(?P<PAYEE>P(?P<value>.*))$'
-MEMO = br'(?P<MEMO>M(?P<value>.*))$'
-CATEGORY = br'(?P<CATEGORY>L(?P<value>.*))$'
-ADDRESS = br'(?P<ADDRESS>L(?P<value>.*))$'
-N_REC = br'(?P<N_REC>N(?P<value>.*))$' # different interp for investments
-SPLIT = br'(?P<SPLIT>S(?P<category>.*)$\$(?P<amount>-?[\d,]+(\.[\d]+)?))$'
-END = br'(?P<END>\^)$'
+HEADER = br'(?P<HEADER>!Type(?P<type>.*))[\r]?$'
+DATE = br'(?P<DATE>D(?P<month>[ 01]?[\d])/(?P<day>[ 0123][\d])\'(?P<year>[ \d][\d]))[\r]?$'
+T_AMOUNT = br'(?P<T_AMOUNT>T(?P<amount>-?[\d,]+(\.[\d]+)?))[\r]?$'
+U_AMOUNT = br'(?P<U_AMOUNT>U(?P<amount>-?[\d,]+(\.[\d]+)?))[\r]?$'
+CLEARED = br'(?P<CLEARED>C(?P<value>[\*cXR]))[\r]?$'
+PAYEE = br'(?P<PAYEE>P(?P<value>.*))[\r]?$'
+MEMO = br'(?P<MEMO>M(?P<value>.*))[\r]?$'
+CATEGORY = br'(?P<CATEGORY>L(?P<value>.*))[\r]?$'
+ADDRESS = br'(?P<ADDRESS>A(?P<value>.*))[\r]?$'
+N_REC = br'(?P<N_REC>N(?P<value>.*))[\r]?$' # different interp for investments
+SPLIT = br'(?P<SPLIT>S(?P<category>.*)[\r]?\n(?:(?P<memo>E.*)[\r]?\n)?\$(?P<amount>-?[\d,]+(\.[\d]+)?))[\r]?$'
+END = br'(?P<END>\^)[\r]?$'
 
 TTYPE_NORMAL = 'NORMAL'
 TTYPE_SPLIT = 'SPLIT'
@@ -32,6 +34,7 @@ TTYPE_SPLIT = 'SPLIT'
 QIFRecord = collections.namedtuple('QIFRecord', ['type', 'value_dict'])
 QIFTransaction = collections.namedtuple('Transaction', ['type', 'records'])
 qif_record_regexes = [
+    HEADER,
     DATE,
     T_AMOUNT,
     U_AMOUNT, 
@@ -54,6 +57,13 @@ class QIFParser:
         """
         iterator of QIF records as scanned
         """
+
+        def decode_val(val):
+            if val is not None and not isinstance(val, str):
+                return val.decode('utf-8')
+            else:
+                return val
+
         position = 0
         while True:
             record = None
@@ -62,7 +72,12 @@ class QIFParser:
                 m = record_regex.match(text, position)
                 if m is not None:
                     position = m.span()[1] + 1
-                    record = QIFRecord(m.lastgroup, m.groupdict())
+                    print("{}, {}".format(m.groupdict(), type(m.groupdict())))
+                    
+                    decoded_dict = {
+                        k: decode_val(v) for k, v in m.groupdict().items()
+                    }
+                    record = QIFRecord(m.lastgroup, decoded_dict)
                     break
             if record is not None:
                 yield record
