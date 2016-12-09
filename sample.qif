@@ -1,9 +1,9 @@
 D6/19' 5
-U0.00
-T0.00
+U-3134.00
+T-3134.00
 CX
 POpening Balance
-L[Checking]
+LEquity
 ^
 D6/19' 5
 U3,184.00
@@ -14,9 +14,9 @@ MDiscrete Math Dropped Reimb
 LEducation:Tuition
 ^
 D6/19' 5
-U175.00
-T175.00
-PTech Software
-MParking in €
+U-175.00
+T-175.00
+PTech Software, LLC
+MParking in São Paulo
 LReimbursement:Work Expenses
 ^

@@ -6,6 +6,7 @@ into transaction tuples
 import re
 import collections
 import copy
+import datetime
 
 
 """ 
@@ -14,7 +15,6 @@ Transaction Record Syntax
 Define record types using named groups (to be referenced when processing later) 
 """
 
-#TODO:  Can byte-like handle utf-8 characters?
 HEADER = br'(?P<HEADER>!Type(?P<type>.*))[\r]?$'
 DATE = br'(?P<DATE>D(?P<month>[ 01]?[\d])/(?P<day>[ 0123][\d])\'(?P<year>[ \d][\d]))[\r]?$'
 T_AMOUNT = br'(?P<T_AMOUNT>T(?P<amount>-?[\d,]+(\.[\d]+)?))[\r]?$'
@@ -25,7 +25,7 @@ MEMO = br'(?P<MEMO>M(?P<value>.*))[\r]?$'
 CATEGORY = br'(?P<CATEGORY>L(?P<value>.*))[\r]?$'
 ADDRESS = br'(?P<ADDRESS>A(?P<value>.*))[\r]?$'
 N_REC = br'(?P<N_REC>N(?P<value>.*))[\r]?$' # different interp for investments
-SPLIT = br'(?P<SPLIT>S(?P<category>.*)[\r]?\n(?:(?P<memo>E.*)[\r]?\n)?\$(?P<amount>-?[\d,]+(\.[\d]+)?))[\r]?$'
+SPLIT = br'(?P<SPLIT>S(?P<category>.*)[\r]?\n(?:E(?P<memo>.*)[\r]?\n)?\$(?P<amount>-?[\d,]+(\.[\d]+)?))[\r]?$'
 END = br'(?P<END>\^)[\r]?$'
 
 TTYPE_NORMAL = 'NORMAL'
@@ -33,7 +33,8 @@ TTYPE_SPLIT = 'SPLIT'
 
 QIFRecord = collections.namedtuple('QIFRecord', ['type', 'value_dict'])
 QIFTransaction = collections.namedtuple('Transaction', ['type', 'records'])
-qif_record_regexes = [
+
+_qif_record_regexes = [
     HEADER,
     DATE,
     T_AMOUNT,
@@ -49,13 +50,64 @@ qif_record_regexes = [
 ]
 
 # need to allow multi-line regexes (the 're.M') due to Split records
-compiled_record_regexes = [re.compile(regex, re.M) for regex in qif_record_regexes]
+_compiled_record_regexes = [re.compile(regex, re.M) for regex in _qif_record_regexes]
+
+def _cast_date(record):
+    d = record.value_dict
+    month = int(d['month'])
+    day = int(d['day'])
+    year = int(d['year'])
+
+    # QIF seems to only consider dates from 1950 to 2050
+    # since it's represented in 2 digits
+    if year <= 50:
+        year += 2000
+    elif year > 50:
+        year += 1900
+    date_val = datetime.date(year, month, day)
+
+    return QIFRecord(record.type, {'date': date_val})
+
+def _cast_amount(record):
+    d = record.value_dict
+    sub_dict = {
+        'amount': float(d['amount'].replace(",", ""))
+    }
+    return QIFRecord(record.type, sub_dict)
+
+def _cast_split(record):
+    d = record.value_dict
+    sub_dict = {
+        'category': d['category'],
+        'amount': float(d['amount'].replace(",", ""))
+    }
+    if 'memo' in d and d['memo'] is not None:
+        sub_dict['memo'] = d['memo']
+
+    return QIFRecord(record.type, sub_dict)
+
+def _cast_general(record):
+    return QIFRecord(record.type, {'value': record.value_dict['value']})
+
+_record_casts = {
+    'DATE': _cast_date,
+    'T_AMOUNT': _cast_amount,
+    'U_AMOUNT': _cast_amount,
+    'CLEARED': _cast_general,
+    'PAYEE': _cast_general,
+    'MEMO': _cast_general,
+    'CATEGORY': _cast_general,
+    'ADDRESS': _cast_general,
+    'N_REC': _cast_general,
+    'SPLIT': _cast_split
+}
 
 class QIFParser:
 
     def _recordize(self, text):
         """
-        iterator of QIF records as scanned
+        iterator of QIFRecords as scanned
+        QIFRecords are raw, except that byte-likes are converted to strings
         """
 
         def decode_val(val):
@@ -67,7 +119,7 @@ class QIFParser:
         position = 0
         while True:
             record = None
-            for record_regex in compiled_record_regexes:
+            for record_regex in _compiled_record_regexes:
                 # yield first match found
                 m = record_regex.match(text, position)
                 if m is not None:
@@ -91,9 +143,12 @@ class QIFParser:
 
     def parse(self, text):
         """
-        parse QIF records and yield transaction tuples
+        parse QIFRecords and yield transaction tuples
 
         text can be either a bytes object or a string
+
+        QIFRecords within transactions are converted to standard types
+        where appropriate (i.e. amount strings -> floats)
         """
 
         ttype = TTYPE_NORMAL
@@ -113,10 +168,13 @@ class QIFParser:
 
             elif r.type == 'SPLIT':
                 ttype = TTYPE_SPLIT
-
-            records.append(r)
+            
+            if r.type in _record_casts:
+                records.append(_record_casts[r.type](r))
+            else:
+                records.append(r)
                
-
+   
 if __name__ == '__main__':
     import argparse
     import mmap
