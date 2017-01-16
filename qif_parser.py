@@ -16,7 +16,7 @@ Define record types using named groups (to be referenced when processing later)
 """
 
 HEADER = br'(?P<HEADER>!Type(?P<type>.*))[\r]?$'
-DATE = br'(?P<DATE>D(?P<month>[ 01]?[\d])/(?P<day>[ 0123][\d])\'(?P<year>[ \d][\d]))[\r]?$'
+DATE = br'(?P<DATE>D(?P<month>[ 01]?[\d])/(?P<day>[ 0123][\d])((\'(?P<year_short>[ ]?\d[\d]?))|(/(?P<year_long>[\d]{4}))))[\r]?$' #noqa
 T_AMOUNT = br'(?P<T_AMOUNT>T(?P<amount>-?[\d,]+(\.[\d]+)?))[\r]?$'
 U_AMOUNT = br'(?P<U_AMOUNT>U(?P<amount>-?[\d,]+(\.[\d]+)?))[\r]?$'
 CLEARED = br'(?P<CLEARED>C(?P<value>[\*cXR]))[\r]?$'
@@ -25,7 +25,7 @@ MEMO = br'(?P<MEMO>M(?P<value>.*))[\r]?$'
 CATEGORY = br'(?P<CATEGORY>L(?P<value>.*))[\r]?$'
 ADDRESS = br'(?P<ADDRESS>A(?P<value>.*))[\r]?$'
 N_REC = br'(?P<N_REC>N(?P<value>.*))[\r]?$' # different interp for investments
-SPLIT = br'(?P<SPLIT>S(?P<category>.*)[\r]?\n(?:E(?P<memo>.*)[\r]?\n)?\$(?P<amount>-?[\d,]+(\.[\d]+)?))[\r]?$'
+SPLIT = br'(?P<SPLIT>S(?P<category>.*)[\r]?\n(?:E(?P<memo>.*)[\r]?\n)?\$(?P<amount>-?[\d,]+(\.[\d]+)?))[\r]?$' #noqa
 END = br'(?P<END>\^)[\r]?$'
 
 TTYPE_NORMAL = 'NORMAL'
@@ -56,14 +56,16 @@ def _cast_date(record):
     d = record.value_dict
     month = int(d['month'])
     day = int(d['day'])
-    year = int(d['year'])
+    if 'year_short' in d and d['year_short'] is not None:
+        # short year is only 1 or 2 digits, so it represents a 50 year period
+        year = int(d['year_short'])
+        if year <= 50:
+            year += 2000
+        elif year > 50:
+            year += 1900
+    else:
+        year = int(d['year_long'])
 
-    # QIF seems to only consider dates from 1950 to 2050
-    # since it's represented in 2 digits
-    if year <= 50:
-        year += 2000
-    elif year > 50:
-        year += 1900
     date_val = datetime.date(year, month, day)
 
     return QIFRecord(record.type, {'date': date_val})
