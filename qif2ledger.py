@@ -1,5 +1,8 @@
 """
 Translate QIF file into Ledger file
+
+QIF Files Represent transactions with entries from many "target"
+accounts that apply to a single "source" account (an asset account)
 """
 
 import argparse
@@ -18,10 +21,12 @@ def ledger_account_name(name):
 
 def ledger_amount(amount):
     """
-    convert amount to ledger format from QIF
-    Amounts are negated as in QIF, amounts are considered
-    positive if they're being added to the asset, whereas in
-    ledger, they're coming out of some other account 
+    Convert amount to ledger format from QIF
+
+    An amount in QIF is in "source" account terms which is implied
+    to be an asset account
+
+    We need to negate the amount to apply it to the "target" account
     
     e.g. Expenses:Tax would be negative in QIF (as it subtracts directly 
     from the asset account).  But it's a positive in Ledger as it adds to

@@ -1,6 +1,8 @@
 """
 Module for parsing Quicken Interchange Format (QIF) files 
 into transaction tuples
+
+See:  https://en.wikipedia.org/wiki/Quicken_Interchange_Format
 """
 
 import re
