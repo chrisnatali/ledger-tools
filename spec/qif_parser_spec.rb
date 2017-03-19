@@ -1,43 +1,146 @@
-require "qif_parser"
-
-GOOD_QIF = <<~EOF
-D11/ 8'16
-U-107.88
-T-107.88
-PVERIZON
-LUtilities
-^
-D11/ 9'16
-U-1,570.73
-PChecking
-LVisa
-^
-EOF
-
-BAD_QIF = <<~EOF
-D11/ 8'16
-U-107.88
-T-107.88
-PVERIZON
-Q^
-Z^
-EOF
+require 'qif_parser'
+require 'qif_parser_fixtures'
 
 describe QIF::Parser do
-	describe "#parse" do
-		context "given a valid string" do
-			it "returns transactions and records" do
-				parser = QIF::Parser.new
-				txns = parser.parse(GOOD_QIF)
-				expect(txns.length).to be > 0
-				txns.each do |t|	
-					expect(t).to be_a QIF::Transaction	
-					expect(t.records.length).to be > 0
-						t.records.each do |r|
-							expect(r).to be_a QIF::Record
-						end
-				end
-			end
-		end
-	end
+  describe "#parse" do
+    context "given a valid string" do
+      it "returns a QIF::Root" do
+        parser = QIF::Parser.new(QIFFixtures::GOOD_QIF)
+        root = parser.parse
+        expect(root.header.type).to eq("Bank")
+        expect(root.qif.class).to eq(QIF::MoneyQIF)
+      end
+    end
+  end
+
+  describe "#parse_header" do
+    let(:bank_header) { QIF::Header.new("Bank") }
+    let(:invst_header) { QIF::Header.new("Invst") }
+    context "given no header" do
+      subject { QIF::Parser.new("") }
+      it "returns Bank header" do
+        expect(subject.parse_header).to eq(bank_header)
+      end
+    end
+    context "given good header" do
+      subject { QIF::Parser.new("!Type:Invst") }
+      it "returns Invst header" do
+        expect(subject.parse_header).to eq(invst_header)
+      end
+    end
+  end
+
+  describe "#parse_account" do
+    let(:account) { QIF::Account.new("Checking", "Bank", "\"Personal Checking\"") }
+    context "given account info" do
+      account_text = <<~EOF
+      !Account
+      NChecking
+      TBank
+      D"Personal Checking"
+      ^
+      EOF
+
+      subject { QIF::Parser.new(account_text) }
+      it "returns account" do
+        expect(subject.parse_account).to eq(account)
+      end
+    end
+
+    context "given bad account info" do
+      account_text = <<~EOF
+      !Account
+      QBad Field
+      ^
+      EOF
+
+      subject { QIF::Parser.new(account_text) }
+      it "raises exception" do
+        expect { subject.parse_account }.to raise_error(QIF::ParseError)
+      end
+    end
+  end
+
+  describe "#parse_item" do
+    let(:item_no_split) { 
+      QIF::Item.new(
+        Time.new(2016, 1, 1), 
+        100.10, 
+        "X",
+        "123",
+        "Sal",
+        "Socks",
+        "123 Van Buren",
+        "Clothing",
+        nil
+      ) 
+    }
+    let(:item_split) { 
+      QIF::Item.new(
+        Time.new(2016, 1, 1), 
+        100.10, 
+        "X",
+        nil,
+        "Employer",
+        "Pay",
+        nil,
+        nil,
+        [QIF::Split.new("Income:Salary", nil, 110.10), 
+         QIF::Split.new("Expenses:Tax", "NY", -10.00)]
+      ) 
+    }
+    context "given no split item info" do
+      item_text = <<~EOF
+      D1/1'16
+      U100.10
+      CX
+      N123
+      PSal
+      MSocks
+      A123 Van Buren
+      LClothing
+      ^
+      EOF
+
+      subject { QIF::Parser.new(item_text) }
+      it "returns item without split" do
+        expect(subject.parse_item).to eq(item_no_split)
+      end
+    end
+
+    context "given split item info" do
+      item_text = <<~EOF
+      D1/1'16
+      U100.10
+      CX
+      PEmployer
+      MPay
+      SIncome:Salary
+      $110.10
+      SExpenses:Tax
+      ENY
+      $-10.00
+      ^
+      EOF
+
+      subject { QIF::Parser.new(item_text) }
+      it "returns item with splits" do
+        expect(subject.parse_item).to eq(item_split)
+      end
+    end
+
+ 
+    context "given bad item info" do
+      item_text = <<~EOF
+      D6/19' 5
+      QBad Field
+      ^
+      EOF
+
+      subject { QIF::Parser.new(item_text) }
+      it "raises exception" do
+        expect { subject.parse_item }.to raise_error(QIF::ParseError)
+      end
+    end
+  end
 end
