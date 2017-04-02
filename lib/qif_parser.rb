@@ -32,10 +32,10 @@ module QIF
   # ClassField := Name | Description
   #
   Root = Struct.new(:header, :qif)
-  MoneyQIF = Struct.new(:header, :account, :items)
-  InvestmentQIF = Struct.new(:header, :investment_items)
-  CategoryQIF = Struct.new(:header, :categories)
-  ClassQIF = Struct.new(:header, :classes)
+  MoneyQIF = Struct.new(:account, :items)
+  InvestmentQIF = Struct.new(:investment_items)
+  CategoryQIF = Struct.new(:categories)
+  ClassQIF = Struct.new(:classes)
   Header = Struct.new(:type)
   Account = Struct.new(:name, :type, :description) # Add these if needed: :credit_limit, :balance_date, :balance_amount)
   Category = Struct.new(:name, :description) # Add if needed: :tax_related, :income_category, :expense_category, :budget_amount, :tax_schedule)
@@ -148,8 +148,6 @@ module QIF
       until @scanner.scan(/\^#{EOL}/)
         field_name, match_parse = field_match.find {|field, match| @scanner.scan(match[:match])}
         unless field_name
-          require 'pry'
-          binding.pry
           raise ParseError, "Item parse error"
         end
         # splits and amounts are special cases

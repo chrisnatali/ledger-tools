@@ -1,29 +1,31 @@
 require 'qif_parser'
 require 'qif_parser_fixtures'
 
-describe QIF::Parser do
+include QIF
+
+describe Parser do
   describe "#parse" do
     context "given a valid string" do
-      it "returns a QIF::Root" do
-        parser = QIF::Parser.new(QIFFixtures::GOOD_QIF)
+      it "returns a MoneyQIF as root" do
+        parser = Parser.new(QIFFixtures::GOOD_QIF)
         root = parser.parse
         expect(root.header.type).to eq("Bank")
-        expect(root.qif.class).to eq(QIF::MoneyQIF)
+        expect(root.qif.class).to eq(MoneyQIF)
       end
     end
   end
 
   describe "#parse_header" do
-    let(:bank_header) { QIF::Header.new("Bank") }
-    let(:invst_header) { QIF::Header.new("Invst") }
+    let(:bank_header) { Header.new("Bank") }
+    let(:invst_header) { Header.new("Invst") }
     context "given no header" do
-      subject { QIF::Parser.new("") }
+      subject { Parser.new("") }
       it "returns Bank header" do
         expect(subject.parse_header).to eq(bank_header)
       end
     end
     context "given good header" do
-      subject { QIF::Parser.new("!Type:Invst") }
+      subject { Parser.new("!Type:Invst") }
       it "returns Invst header" do
         expect(subject.parse_header).to eq(invst_header)
       end
@@ -31,7 +33,7 @@ describe QIF::Parser do
   end
 
   describe "#parse_account" do
-    let(:account) { QIF::Account.new("Checking", "Bank", "\"Personal Checking\"") }
+    let(:account) { Account.new("Checking", "Bank", "\"Personal Checking\"") }
     context "given account info" do
       account_text = <<~EOF
       !Account
@@ -41,7 +43,7 @@ describe QIF::Parser do
       ^
       EOF
 
-      subject { QIF::Parser.new(account_text) }
+      subject { Parser.new(account_text) }
       it "returns account" do
         expect(subject.parse_account).to eq(account)
       end
@@ -54,16 +56,16 @@ describe QIF::Parser do
       ^
       EOF
 
-      subject { QIF::Parser.new(account_text) }
+      subject { Parser.new(account_text) }
       it "raises exception" do
-        expect { subject.parse_account }.to raise_error(QIF::ParseError)
+        expect { subject.parse_account }.to raise_error(ParseError)
       end
     end
   end
 
   describe "#parse_item" do
     let(:item_no_split) { 
-      QIF::Item.new(
+      Item.new(
         Time.new(2016, 1, 1), 
         100.10, 
         "X",
@@ -76,7 +78,7 @@ describe QIF::Parser do
       ) 
     }
     let(:item_split) { 
-      QIF::Item.new(
+      Item.new(
         Time.new(2016, 1, 1), 
         100.10, 
         "X",
@@ -85,8 +87,8 @@ describe QIF::Parser do
         "Pay",
         nil,
         nil,
-        [QIF::Split.new("Income:Salary", nil, 110.10), 
-         QIF::Split.new("Expenses:Tax", "NY", -10.00)]
+        [Split.new("Income:Salary", nil, 110.10), 
+         Split.new("Expenses:Tax", "NY", -10.00)]
       ) 
     }
     context "given no split item info" do
@@ -102,7 +104,7 @@ describe QIF::Parser do
       ^
       EOF
 
-      subject { QIF::Parser.new(item_text) }
+      subject { Parser.new(item_text) }
       it "returns item without split" do
         expect(subject.parse_item).to eq(item_no_split)
       end
@@ -123,7 +125,7 @@ describe QIF::Parser do
       ^
       EOF
 
-      subject { QIF::Parser.new(item_text) }
+      subject { Parser.new(item_text) }
       it "returns item with splits" do
         expect(subject.parse_item).to eq(item_split)
       end
@@ -137,9 +139,9 @@ describe QIF::Parser do
       ^
       EOF
 
-      subject { QIF::Parser.new(item_text) }
+      subject { Parser.new(item_text) }
       it "raises exception" do
-        expect { subject.parse_item }.to raise_error(QIF::ParseError)
+        expect { subject.parse_item }.to raise_error(ParseError)
       end
     end
   end
