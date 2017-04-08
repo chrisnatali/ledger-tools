@@ -1,0 +1,5 @@
+#!/usr/bin/env ruby
+
+require 'qif2ledger'
+
+LedgerTools::QIF2Ledger.write_qif_as_ledger(input: $stdin, output: $stdout, asset_account: ARGV[0])
