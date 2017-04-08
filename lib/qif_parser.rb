@@ -41,7 +41,7 @@ module QIF
   Category = Struct.new(:name, :description) # Add if needed: :tax_related, :income_category, :expense_category, :budget_amount, :tax_schedule)
   Class = Struct.new(:name, :description)
   # An item is roughly equivalent to a transaction in other accounting contexts
-  Item = Struct.new(:date, :amount, :cleared, :check_num, :payee, :memo, :address, :category, :splits)
+  Item = Struct.new(:date, :amount, :cleared, :check_num, :payee, :memo, :address_lines, :category, :splits)
   InvestmentItem = Struct.new(:date, :action, :security, :price, :quantity, :amount, :cleared, :pnote, :memo, :commission, :transfer_account, :transfer_amount)
   Field = Struct.new(:type, :value)
   Split = Struct.new(:category, :memo, :amount)
@@ -61,14 +61,14 @@ module QIF
   class Parser
 
     # General token regex's to be plugged in
-    EOL = /(?:\n|\r\n)/
+    EOL = /\s*\n/
     MONTH = /(?<month>[ 01]?[\d])/
     DAY = /(?<day>[ 0123]?[\d])/
     YEAR_SHORT = /(?<year_short>[ ]?\d[\d]?)/
     YEAR_LONG = /(?<year_long>[\d]{4})/
     DATE = /#{MONTH}\/#{DAY}(('#{YEAR_SHORT})|(\/#{YEAR_LONG}))#{EOL}/
     AMOUNT = /(?<amount>-?[\d,]+(\.[\d]+)?)#{EOL}/
-    VALUE = /(?<value>.*)#{EOL}/
+    VALUE = /(?<value>[^\r\n]*)#{EOL}/
 
     def initialize(text)
       @scanner = StringScanner.new(text)
@@ -92,7 +92,7 @@ module QIF
     end
 
     def parse_header
-      if @scanner.scan(/!Type:(?<header_type>\w+)$/) 
+      if @scanner.scan(/!Type:(?<header_type>\w+)\s*#{EOL}/) 
         Header.new(@scanner[:header_type])
       else
         # Bank is default file type
@@ -145,6 +145,7 @@ module QIF
       }
       item = Item.new
       splits = []
+      address_lines = []
       until @scanner.scan(/\^#{EOL}/)
         field_name, match_parse = field_match.find {|field, match| @scanner.scan(match[:match])}
         unless field_name
@@ -153,6 +154,8 @@ module QIF
         # splits and amounts are special cases
         if field_name == :split
           splits << parse_split
+        elsif field_name == :address
+          address_lines << parse_value
         elsif field_name == :amount
           # set the value of the field to the parsed value
           value = send(match_parse[:parse])
@@ -173,6 +176,9 @@ module QIF
       end
       if splits.size > 0
         item.splits = splits
+      end
+      if address_lines.size > 0
+        item.address_lines = address_lines
       end
       return item
     end

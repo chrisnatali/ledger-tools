@@ -25,7 +25,7 @@ describe Parser do
       end
     end
     context "given good header" do
-      subject { Parser.new("!Type:Invst") }
+      subject { Parser.new("!Type:Invst\n") }
       it "returns Invst header" do
         expect(subject.parse_header).to eq(invst_header)
       end
@@ -72,7 +72,7 @@ describe Parser do
         "123",
         "Sal",
         "Socks",
-        "123 Van Buren",
+        ["123 Van Buren St", "Passaic", "NJ"],
         "Clothing",
         nil
       ) 
@@ -99,7 +99,9 @@ describe Parser do
       N123
       PSal
       MSocks
-      A123 Van Buren
+      A123 Van Buren St
+      APassaic
+      ANJ
       LClothing
       ^
       EOF

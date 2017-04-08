@@ -1,13 +1,12 @@
-require 'money'
-require 'model'
+require 'ledger_tools'
+require 'qif_parser'
 
 module LedgerTools
-
-  include Model
 
   # static class for QIF to Ledger translation and output
   class QIF2Ledger
 
+    include Model
     # converts the QIF::MoneyQIF parse tree into 
     # an enumerable of LedgerTools::Transaction
     def self.qif_to_transactions(money_qif, asset_account:)
@@ -16,9 +15,19 @@ module LedgerTools
       end
     end
 
-    # writes enumerable of transactions to stream
-    def self.write_transactions(io: nil)
-
+    # takes in a QIF and outputs Ledger format
+    # TODO:  write tests and handle special cases
+    def self.write_qif_as_ledger(input:, output:, asset_account:)
+      parser = QIF::Parser.new(input.read)
+      qif = parser.parse.qif
+      unless qif || qif.is_a?(QIF::MoneyQIF)
+        raise LedgerToolsError, "This QIF Format not supported"
+      end
+      transactions = self.qif_to_transactions(qif, asset_account: asset_account)
+      transactions.each do |transaction|
+        transaction.to_ledger(io: output)
+        output.puts # blank line
+      end
     end
 
     private
