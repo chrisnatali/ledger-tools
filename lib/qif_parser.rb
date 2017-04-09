@@ -141,7 +141,7 @@ module QIF
         memo: {match: /M#{VALUE}/, parse: :parse_value},
         address: {match: /A#{VALUE}/, parse: :parse_value},
         category: {match: /L#{VALUE}/, parse: :parse_value},
-        split: {match: /S(?<category>.*)#{EOL}(E(?<memo>.*)#{EOL})?\$#{AMOUNT}/, parse: :parse_split}
+        split: {match: /S(?<category>[^\r\n]*)#{EOL}(E(?<memo>[^\r\n]*)#{EOL})?\$#{AMOUNT}/, parse: :parse_split}
       }
       item = Item.new
       splits = []

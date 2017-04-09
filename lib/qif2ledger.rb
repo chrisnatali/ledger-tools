@@ -46,25 +46,29 @@ module LedgerTools
       unless item.splits
         total += item.amount
         entries << Entry.new(
-          account: item.category,
+          account: gsub_account_name(item.category),
           amount: Money.new(-(item.amount) * 100, "USD"), # QIF amounts in dollars
           memo: item.memo)
       else
         item.splits.each do |split|
           total += split.amount
           entries << Entry.new(
-            account: split.category,
+            account: gsub_account_name(split.category),
             amount: Money.new(-(split.amount) * 100, "USD"), # QIF amounts in dollars
             memo: split.memo)
         end
       end
       # add the balancing entry
       entries << Entry.new(
-        account: asset_account,
+        account: gsub_account_name(asset_account),
         amount: Money.new(total * 100, "USD"))
       transaction.entries = entries
       transaction
     end
 
+    def self.gsub_account_name(account_name)
+      #TODO:  raise if account name missing in parser
+      account_name.gsub(/\s{2,}/, " ") if account_name
+    end
   end
 end
