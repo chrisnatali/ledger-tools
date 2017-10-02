@@ -1,0 +1,21 @@
+#!/usr/bin/env ruby
+
+require 'optparse'
+require 'active_support/all'
+require 'ledger_tools/csv2ledger'
+
+# see:  csv2ledger_config.yaml for example config file
+config = nil
+option_parser = OptionParser.new do |opts|
+  opts.banner = <<~EOF
+    Usage (csv on stdin and ledger file on stdout):
+    cat input.csv | csv2ledger [--config config_file.yaml] > ledger_file.dat
+    EOF
+  opts.on("-c", "--config config_file.yaml",
+          "yaml configuration file") do |config_file|
+    config = YAML::load(open(config_file))
+  end
+end.parse!
+
+csv_2_ledger = LedgerTools::CSV2Ledger.new(**config.symbolize_keys)
+csv_2_ledger.write_csv_as_ledger($stdin, $stdout)

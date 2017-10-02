@@ -1,0 +1,32 @@
+# Config for Mint csv format
+# e.g.
+# "Date","Description","Original Description","Amount","Transaction Type","Category","Account Name","Labels","Notes"
+# "9/20/2017","Quinnderellas","Debit Card Purchase - QUINNDEREL","5.02","debit","Toys","Unnamed Account","",""
+
+date_format: '%m/%d/%Y'
+balance_account: 'Assets:Checking'
+
+field_mappings:
+    date: 'Date'
+    payee: 'Original Description'
+    account: ':payee' # lookup against the payee value
+    amount: 'Amount'  
+
+payee_mappings:
+    'Quinnderellas':
+        - 'QUINNDEREL' 
+    'Seamless':
+        - 'SEAMLSSBAR'
+    'Ben and Jerrys':
+        - 'BEN JERRY'
+    'Qdoba':
+        - 'QDOBA'
+
+
+account_mappings: 
+    Expenses:Dining:
+        - 'Seamless'
+        - 'Ben and Jerrys'
+        - 'Qdoba'
+    Expenses: # catch all
+        - '.*' 
