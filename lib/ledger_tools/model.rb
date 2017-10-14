@@ -26,11 +26,12 @@ module LedgerTools
       end
 
       def to_ledger_string
-        if memo.nil?
-          "    #{@account}  #{@amount.format}"
-        else
-          "    #{@account}  #{@amount.format};#{@memo}"
+        space = "    "
+        entry_str =  "#{space}#{@account}  #{@amount.format}"
+        unless memo.nil?
+          entry_str = "#{space};#{@memo}\n#{entry_str}"
         end
+        entry_str
       end
     end
 

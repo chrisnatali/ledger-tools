@@ -1,7 +1,7 @@
 # Module and Class to parse a QIF file into Transactions composed of Records
 require 'strscan'
 
-module QIF
+module LedgerTools::QIF
 
   # Structure of a QIF file is outlined [here](https://en.wikipedia.org/wiki/Quicken_Interchange_Format)
   # and specified in detail [here](https://www.w3.org/2000/10/swap/pim/qif-doc/QIF-doc.htm)

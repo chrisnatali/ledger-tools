@@ -1,5 +1,4 @@
-require 'ledger_tools'
-require 'qif_parser'
+require 'ledger_tools/qif/qif_parser'
 
 module LedgerTools
 
@@ -37,9 +36,8 @@ module LedgerTools
       entries = []
       # take item or split category as the account for each entry
       #
-      # amounts from QIF are positive, but are actually expenses so
-      # recorded in ledger as negatives and then balanced by an
-      # asset account
+      # expense amounts from QIF are negative, so we need to negate
+      # to "add" to the expense account
       #
       # Money amounts are initialized in cents for USD (hence * 100)
       total = 0
