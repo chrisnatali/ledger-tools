@@ -11,6 +11,7 @@ field_mappings:
     payee: 'Original Description'
     account: ':payee' # lookup against the payee value
     amount: 'Amount'  
+    transaction_type: 'Transaction Type'
 
 payee_mappings:
     'Quinnderellas':
@@ -30,3 +31,15 @@ account_mappings:
         - 'Qdoba'
     Expenses: # catch all
         - '.*' 
+
+# Map records to credits and debits based on transaction_type values
+# NOTE:  Not needed if records already assign negative values to credits
+transaction_type_mappings:
+    'credit':
+        - 'credit'
+    'debit':
+        - '.*'
+
+transaction_type_factor_mapping:
+    'credit': -1
+    'debit': 1

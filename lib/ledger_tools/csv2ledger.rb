@@ -40,7 +40,7 @@ module LedgerTools
     # balance_account:  Account to balance out each transaction with
     # transaction_type_mappings:  value => [transaction_type category regex]
     #   Map a standard transaction_type to the record via a regex
-    # transaction_type_factor_mappings:  txn_type => factor
+    # transaction_type_factor_mapping:  txn_type => factor
     #   Map a standard transaction_type to a factor to multiply amount by
     def initialize(field_mappings: nil,
                    payee_mappings: nil,
