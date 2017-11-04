@@ -15,6 +15,7 @@ module LedgerTools
       hash_map.each do |key, val|
         if val.class == Array
           hash_map[key] = val.map do |val| 
+            # TODO:  if not a string, raise?
             val.class == String ? /#{val}/ : val
           end
         elsif val.class == Hash

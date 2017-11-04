@@ -13,6 +13,16 @@ field_mappings:
     amount: 'Amount'  
     transaction_type: 'Transaction Type'
 
+# Payee, account and transaction_type mappings are expressed as:
+# '<output_value>':
+#       - '<regex_as_string>'
+#       - '<regex_as_string>' ...
+#
+# where output_value is the value mapped to if any of the regexes match
+# anywhere in the corresponding input field
+#
+# First match found is applied so priority for match is set by listing order
+# (hence you can put a "catch all" in at the end as below)
 payee_mappings:
     'Quinnderellas':
         - 'QUINNDEREL' 
