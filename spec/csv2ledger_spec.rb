@@ -54,6 +54,25 @@ module LedgerTools
         transaction_type_mappings: transaction_type_mappings,
         transaction_type_factor_mapping: transaction_type_factor_mapping)
     end
+    let(:credit_debit_field_mappings) do
+      {
+        'date' => 'Date',
+        'payee' => 'Transaction Description',
+        'account' => ':payee', # lookup against the payee value
+        'credit_amount' => 'Credit',
+        'debit_amount' => 'Debit',
+      }
+    end
+    let(:csv2ledger_credit_debit) do
+      LedgerTools::CSV2Ledger.new(
+        field_mappings: credit_debit_field_mappings,
+        payee_mappings: payee_mappings,
+        account_mappings: account_mappings,
+        date_format: date_format,
+        balance_account: balance_account,
+        transaction_type_mappings: transaction_type_mappings,
+        transaction_type_factor_mapping: transaction_type_factor_mapping)
+    end
     let(:input_csv) do
       <<~EOF
       "Date","Transaction Description","Amount","Transaction Type"
@@ -63,6 +82,16 @@ module LedgerTools
       9/27/2017,MY PAYCHECK,900.20,credit
       EOF
     end
+    let(:input_csv_credit_debit) do
+      <<~EOF
+      "Date","Transaction Description","Debit","Credit"
+      9/21/2017,B3211 AMZ,23.22,
+      9/22/2017,123 BEN JERRY HG,3.92,
+      9/24/2017,ABC TOYS,5.99,
+      9/27/2017,MY PAYCHECK,,900.20
+      EOF
+    end
+
     let(:output_ledger) do
       <<~EOF
       2017-09-21 Amazon
@@ -86,6 +115,31 @@ module LedgerTools
           Income:Salary  $-900.20
       EOF
     end
+
+    let(:output_ledger_credit_debit) do
+      <<~EOF
+      2017-09-21 Amazon
+          ;9/21/2017,B3211 AMZ,23.22,
+          Expenses  $23.22
+          Assets:Checking  $-23.22
+
+      2017-09-22 Ben and Jerrys
+          ;9/22/2017,123 BEN JERRY HG,3.92,
+          Expenses:Dining  $3.92
+          Assets:Checking  $-3.92
+
+      2017-09-24 ABC TOYS
+          ;9/24/2017,ABC TOYS,5.99,
+          Expenses  $5.99
+          Assets:Checking  $-5.99
+
+      2017-09-27 Paycheck
+          Assets:Checking  $900.20
+          ;9/27/2017,MY PAYCHECK,,900.20
+          Income:Salary  $-900.20
+      EOF
+    end
+
 
     # TODO factor out into lib?
     def create_simple_transaction(
@@ -175,6 +229,17 @@ module LedgerTools
       it "returns matching ledger formatted output" do
         csv2ledger.write_csv_as_ledger(input_io, output_io)
         expect(output_io.string).to eq(output_ledger)
+      end
+    end
+
+    context "csv contains separate credit and debit fields" do
+      describe "#write_csv_as_ledger" do
+        let(:input_io) { StringIO.new(input_csv_credit_debit) }
+        let(:output_io) { StringIO.new }
+        it "returns matching ledger formatted output" do
+          csv2ledger_credit_debit.write_csv_as_ledger(input_io, output_io)
+          expect(output_io.string).to eq(output_ledger_credit_debit)
+        end
       end
     end
   end

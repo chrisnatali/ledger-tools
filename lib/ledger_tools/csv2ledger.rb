@@ -21,8 +21,10 @@ module LedgerTools
       'payee' => 'payee',
       'amount' => 'amount',
     }
-    REQUIRED_FIELDS = %w{date account payee amount}.freeze
-    DEFAULT_TRANSACTION_TYPE = 'debit'
+    REQUIRED_FIELDS = %w{date account payee}.freeze
+    TRANSACTION_TYPE_CREDIT = 'credit'
+    TRANSACTION_TYPE_DEBIT = 'debit'
+    DEFAULT_TRANSACTION_TYPE = TRANSACTION_TYPE_DEBIT
     DEFAULT_TRANSACTION_TYPE_FACTOR = 1
 
     # Construct a new CSV2Ledger instance 
@@ -147,17 +149,49 @@ module LedgerTools
     
     def transaction_type
       value = @record[@field_mappings['transaction_type']] 
+      value ||= transaction_type_from_amount_fields
       value ||= DEFAULT_TRANSACTION_TYPE
       lookup(@transaction_type_mappings, value).to_sym
     end
 
+    # In cases where we have debits and credits in separate fields
+    # (debit_amount, credit_amount)
+    # Determine the txn type from whichever field is populated
+    # with an amount
+    def transaction_type_from_amount_fields
+      is_number = lambda { |val| true if Float(val) rescue false }
+      [TRANSACTION_TYPE_CREDIT, TRANSACTION_TYPE_DEBIT].each do |txn_type|
+        field_name = "#{txn_type}_amount"
+        if @field_mappings.include?(field_name)
+          val = @record[@field_mappings[field_name]]
+          if is_number.call(val)
+            return txn_type
+          end
+        end
+      end
+    end
+ 
     def transaction_type_factor
       factor = @transaction_type_factor_mapping[transaction_type.to_s]
       (factor || DEFAULT_TRANSACTION_TYPE_FACTOR).to_f
     end
 
     def amount
-      @record[@field_mappings['amount']].to_f
+      if @field_mappings.include?('amount')
+        return @record[@field_mappings['amount']].to_f
+      end
+      # if mappings include credit_amount or debit_amount
+      # check for values
+      is_number = lambda { |val| true if Float(val) rescue false }
+      [TRANSACTION_TYPE_CREDIT, TRANSACTION_TYPE_DEBIT].each do |txn_type|
+        field_name = "#{txn_type}_amount"
+        if @field_mappings.include?(field_name)
+          val = @record[@field_mappings[field_name]]
+          if is_number.call(val)
+            return val.to_f
+          end
+        end
+      end
     end
 
     def validate
