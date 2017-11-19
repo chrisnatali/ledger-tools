@@ -5,7 +5,7 @@ $LOAD_PATH.unshift(lib) unless $LOAD_PATH.include?(lib)
 Gem::Specification.new do |spec|
   #TODO add detail (see RubyMoney for example)
   spec.name          = "ledger_tools"
-  spec.version       = "0.1"
+  spec.version       = "0.1.1"
   spec.summary		   = %q{tools for ledger}
   spec.authors			 = ["Chris Natali"]
   spec.files         = Dir['README.md', '{bin,lib,spec}/**/*']
