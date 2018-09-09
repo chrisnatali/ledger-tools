@@ -2,9 +2,47 @@ module Finance
 
   MIN_ACCURACY = 1e-6
 
-  # TODO:  Write StandardAnnuity where we can set any 3 of the 4 variables
   class StandardAnnuity
-    def initialize(num_periods:, principal: nil, periodic_interest: nil, annuity_payment: nil)
+    # Create a new StandardAnnuity with `num_periods` and 2 of the 3 of:
+    # `principal`, `periodic_interest`, `annuity_payment`
+    # Alt signature: 
+    # initialize(
+    #   num_periods:,
+    #   principal: nil,
+    #   periodic_interest: nil,
+    #   annuity_payment: nil)
+    def initialize(**kwargs)
+      # required params:  this will raise argument error
+      required_params = { num_periods: Integer(kwargs[:num_periods]) }
+
+      # 2 of 3 in the optional param_set are required and
+      # the lambda is the converter/validator in case the value is specified
+      # or not nil
+      optional_param_validators = {
+        principal: -> val { Integer(val) },
+        periodic_interest: lambda do |val|
+          i = Float(val)
+          if !(0..1).include?(i)
+            raise "periodic_interest must be in range (0..1), i: #{i}"
+          end
+        end,
+        annuity_payment: -> val { Float(val) },
+      }
+          
+      optional_params = kwargs.select do |k, v| 
+        v != nil && optional_param_validators.keys.include?(k)
+      end
+
+      if optional_params.size < 2
+        raise ArgumentError("Must have 2 of 3 parameters "\
+                            "(#{optional_param_validators.keys}) "\
+                            "only got (#{optional_params.keys})")
+      end
+
+      # translate optional params and merge with required into @params
+      @params = optional_params.map do |k, v| 
+        [k, optional_param_validators[k].call(v)]
+      end.to_h.merge(required_params)
     end
   end
 
@@ -102,7 +140,8 @@ module Finance
   #
   # p*(1 + i)^n - a*s_0
   def self.annuity_principal_balance(principal, interest, payment, num_periods)
-    (principal * (1 + interest)**num_periods) - payment * self.annuity_fv_factor(interest, num_periods)
+    (principal * (1 + interest)**num_periods) - 
+     payment * self.annuity_fv_factor(interest, num_periods)
   end
 
  
@@ -156,17 +195,27 @@ module Finance
     annuity_payment,
     num_periods,
     &annuity_payment_method)
-
-    raise StandardError("Invalid parameters: principal #{principal}, annuity_payment #{annuity_payment}, num_periods #{num_periods}") if annuity_payment >= principal || num_periods < 0 || annuity_payment <= 0 || principal <= 0
-    # Interest range must be from 0 (no interest) to < 1.0 (each payment would equal the principal)
+    if annuity_payment >= principal ||
+       num_periods < 0 ||
+       annuity_payment <= 0 ||
+       principal <= 0
+      raise StandardError("Invalid parameters: principal #{principal}, "\
+                          "annuity_payment #{annuity_payment}, "\
+                          "num_periods #{num_periods}") 
+    end
+    # Interest range must be from 0 (no interest) to < 1.0
+    # (each payment would equal the principal)
     # One millionth accuracy
-    # Since the annuity_payment function is monotonic in interest, we can solve for
-    # the interest by binary search until we get an annuity_payment that's close
-    # enough to what we're looking for
+    # Since the annuity_payment function is monotonic in interest, we can
+    # solve for the interest by binary search until we get an annuity_payment
+    # that's close enough to what we're looking for
     min_interest = 0
     max_interest = 1.0
     current_interest = (min_interest + max_interest) / 2.0
-    current_payment = annuity_payment_method.call(principal, current_interest, num_periods)
+    current_payment = annuity_payment_method.call(
+      principal,
+      current_interest,
+      num_periods)
     while ((annuity_payment - current_payment).abs > MIN_ACCURACY) 
       if current_payment > annuity_payment
         max_interest = current_interest
@@ -174,7 +223,10 @@ module Finance
         min_interest = current_interest
       end
       current_interest = (min_interest + max_interest) / 2.0
-      current_payment = annuity_payment_method.call(principal, current_interest, num_periods)
+      current_payment = annuity_payment_method.call(
+        principal,
+        current_interest,
+        num_periods)
     end
     current_interest
   end
@@ -184,12 +236,26 @@ if $0 == __FILE__
   principal = 800_000.0
   annuity_payment = 4000.0
   num_periods = 360
-  interest = Finance.solve_annuity_for_interest(principal, annuity_payment, num_periods) do |p, i, n|
+
+  sa = Finance::StandardAnnuity.new(
+    num_periods: num_periods,
+    principal: principal,
+    annuity_payment: annuity_payment)
+
+  interest = Finance.solve_annuity_for_interest(
+    principal,
+    annuity_payment,
+    num_periods) do |p, i, n|
     Finance.annuity_payment(p, i, n)
   end
 
   annual_interest = interest * 12
-  p "principal: #{principal} payment: #{annuity_payment} num_periods: #{num_periods} interest: #{interest} annual interest: #{annual_interest}"
-  recalculated_payment = Finance.annuity_payment(principal, interest, num_periods)
+  p "principal: #{principal} payment: #{annuity_payment} "\
+    "num_periods: #{num_periods} interest: #{interest} "\
+    "annual interest: #{annual_interest}"
+  recalculated_payment = Finance.annuity_payment(
+    principal,
+    interest,
+    num_periods)
   p "recalculated payment: #{recalculated_payment}"
 end

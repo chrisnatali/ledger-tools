@@ -9,3 +9,5 @@ include LedgerTools::Finance
 # - 0 payment amount
 # - fv = (1 + i)^n*pv
 
+describe 'LedgerTools::Finance' do
+end 
