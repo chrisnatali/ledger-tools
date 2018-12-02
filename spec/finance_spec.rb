@@ -15,9 +15,34 @@ describe Finance::StandardAnnuity do
 end 
 
 describe 'Finance.annuity_balance' do
-  context 'when num_periods is 0' do
+  let(:principal) { 1000.0 }
+  let(:num_periods) { 2 }
+  let(:periodic_interest) { 5/100r } # 5 percent as rational
+  let(:payment) { Finance.annuity_payment(principal, periodic_interest, num_periods) }
+  let(:tolerance) { 1e-8 }
+
+  context 'when all payments equal' do
+    let(:payments_for_periods) { [payment] * num_periods }
+
+    it 'matches annuity_balance_custom' do
+      (0..num_periods).each do |period| 
+        balance = Finance.annuity_balance(principal, periodic_interest, payment, period)
+        balance_custom = Finance.annuity_balance_custom(principal, periodic_interest, payments_for_periods, period)
+        expect(balance).to be_within(tolerance).of(balance_custom)
+      end
+    end
   end
 
-  context 'when the balance is easy to compute' do
+  context 'when there are prepayments' do
+    let(:prepayments_for_periods) { [100.0, 0.0] }
+    let(:payments_for_periods) { prepayments_for_periods.map { |prepayment| prepayment + payment } }
+
+    it 'matches annuity_balance_custom' do
+      (0..num_periods).each do |period| 
+        balance = Finance.annuity_balance(principal, periodic_interest, payment, period, prepayments_for_periods)
+        balance_custom = Finance.annuity_balance_custom(principal, periodic_interest, payments_for_periods, period)
+        expect(balance).to be_within(tolerance).of(balance_custom)
+      end
+    end
   end
 end

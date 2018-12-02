@@ -23,10 +23,11 @@ module Finance
       optional_param_validators = {
         principal: -> val { Integer(val) },
         periodic_interest: lambda do |val|
-          i = Float(val)
-          if !(0..1).include?(i)
+          interest = Float(val)
+          if !(0..1).include?(interest)
             raise "periodic_interest must be in range (0..1), i: #{i}"
           end
+          interest
         end,
         payment: -> val { Integer(val) },
       }
@@ -174,14 +175,30 @@ module Finance
   # p*(1 + i)^n - a*s_0
   #
   # Good explanation [here](https://money.stackexchange.com/a/61819)
-  def self.annuity_balance(principal, periodic_interest, payment, num_periods)
+  #
+  # prepayments_for_periods: an array of prepayments indexed by period
+  def self.annuity_balance(principal, periodic_interest, payment_fixed, num_periods, prepayments_for_periods=[])
     raise "balance can only be computed for num_periods >= 0" unless num_periods >= 0
     # principal has accrued interest over num_periods (it's future value)
     fv_principal = principal * (1 + periodic_interest)**num_periods
     # payments have been made since 1st period and accrued interest geometrically
-    fv_payments = payment * self.annuity_fv_factor(periodic_interest, num_periods)
+    fv_payments = payment_fixed * self.annuity_fv_factor(periodic_interest, num_periods)
     
-    fv_principal - fv_payments
+    # Consider prepayments if any
+    fv_prepayments = self.fv_prepayments(num_periods, periodic_interest, prepayments_for_periods)
+    fv_principal - fv_payments - fv_prepayments
+  end
+
+  def self.fv_prepayments(num_periods, periodic_interest, prepayments_for_periods)
+    value = 0
+    (0...[num_periods, prepayments_for_periods.size].min).each do |period_index|
+      period = period_index + 1
+      periods_compounded = (num_periods - period)
+      fv_factor = (1 + periodic_interest)**periods_compounded
+      fv_prepayment = prepayments_for_periods[period_index] * fv_factor
+      value += fv_prepayment
+    end
+    value
   end
 
   def self.annuity_period_interest_amount(annuity_balance, periodic_interest)
@@ -225,7 +242,7 @@ module Finance
   def self.annuity_fv_factor(periodic_interest, num_periods)
     # if interest is 0, the pv is just the amount * num_periods
     if periodic_interest == 0
-      return num_periods
+      return 1
     end
 
     # closed form for the geometric series
@@ -273,6 +290,17 @@ module Finance
         num_periods)
     end
     current_interest
+  end
+
+  # Similar to `annuity_balance` but takes a custom set of payments over the periods
+  def self.annuity_balance_custom(principal, periodic_interest, payments_for_periods, num_periods)
+    raise "Requires num_periods >= 0" unless num_periods >= 0
+    raise "Requires payments_for_periods.size >= num_periods" unless payments_for_periods.size >= num_periods
+    balance = principal
+    (0...num_periods).each do |period|
+      balance = balance * (1 + periodic_interest) - (payments_for_periods[period])
+    end
+    balance
   end
 end
 
@@ -330,13 +358,17 @@ if $0 == __FILE__
   #   sa.principal,
   #   sa.periodic_interest,
   #   sa.num_periods)
+
+  # Populate prepayments_for_periods
   prepayments = options[:prepayments] || []
+  prepayments_for_periods = [0] * sa.num_periods
+  prepayments.each do |prepayment| 
+    period_index = prepayment['period'] - 1
+    prepayments_for_periods[period_index] = prepayment['payment']
+  end
 
   schedule = (1..sa.num_periods).map do |period|
-    total_prepayments = prepayments.select { |pmt| period > pmt['period'] }.sum { |pmt| pmt['payment'] }
-
-    balance_without_prepay = Finance.annuity_balance(sa.principal, sa.periodic_interest, sa.payment, period - 1)
-    annuity_balance = balance_without_prepay - total_prepayments
+    annuity_balance = Finance.annuity_balance(sa.principal, sa.periodic_interest, sa.payment, period - 1, prepayments_for_periods)
     period_interest = Finance.annuity_period_interest_amount(annuity_balance, sa.periodic_interest)
     # remainder is the principal
     period_principal = sa.payment - period_interest
