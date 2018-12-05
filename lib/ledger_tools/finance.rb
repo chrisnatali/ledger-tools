@@ -1,6 +1,6 @@
 module Finance
 
-  MIN_ACCURACY = 1e-12
+  MIN_ACCURACY = 1e-16
 
   class StandardAnnuity
     # Create a new StandardAnnuity with `num_periods` and 2 of the 3 of:
@@ -62,7 +62,7 @@ module Finance
 
     def periodic_interest
       @params[:periodic_interest] ||= Finance.annuity_periodic_interest(principal, payment, num_periods) do |p, i, n|
-        Finance.annuity_payment(p, i, n)
+        Finance.annuity_payment(p, i, n, round: false)
       end
     end
   end
@@ -124,7 +124,7 @@ module Finance
   #  
   #  p = a*s <=> a = p / s
   # 
-  def self.annuity_payment(principal, periodic_interest, num_periods)
+  def self.annuity_payment(principal, periodic_interest, num_periods, round: true)
     # num_periods is 0 means that we pay all principal back immediately
     # so there's no interest accrued and the payment is the principal
     if num_periods == 0
@@ -132,7 +132,10 @@ module Finance
     end
 
     payment = principal / self.annuity_pv_factor(periodic_interest, num_periods)
-    payment.round(half: :even)
+    if round
+      payment = payment.round(half: :even)
+    end
+    payment
   end
 
   def self.annuity_principal(payment, periodic_interest, num_periods)
@@ -176,7 +179,7 @@ module Finance
   #
   # Good explanation [here](https://money.stackexchange.com/a/61819)
   #
-  # prepayments_for_periods: an array of prepayments indexed by period
+  # prepayments_for_periods: an array of prepayments indexed by period they first applied for
   def self.annuity_balance(principal, periodic_interest, payment_fixed, num_periods, prepayments_for_periods=[])
     raise "balance can only be computed for num_periods >= 0" unless num_periods >= 0
     # principal has accrued interest over num_periods (it's future value)
@@ -376,7 +379,9 @@ if $0 == __FILE__
     {
       period: period,
       period_interest: period_interest,
-      period_principal: period_principal
+      period_principal: period_principal,
+      balance: annuity_balance,
+      # periodic_interest_rate: sa.periodic_interest,
     }
   end
 
