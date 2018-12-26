@@ -83,6 +83,41 @@ Example using sample CSV file (Mint CSV format) provided:
     Assets:Checking  $-32.64
 ```
 
+### finance
+
+The finance module currently computes a payment schedule for an annuity when run via the command line.
+
+```
+> ruby lib/ledger_tools/finance.rb --help
+Usage:  finance.rb [parameters (at least 3)]
+    -p, --principal=PRINCIPAL        The Principal amount of the annuity
+    -a, --payment=PAYMENT            The periodic payment of the annuity
+    -n, --num_periods=NUM_PERIODS    The number of payment periods
+    -iPERIODIC_INTEREST,             The periodic interest of the annuity
+        --periodic_interest
+    -c, --prepayments=PREPAYMENTS    Path to a json file with an array of hashes with :period, :payment keys
+
+Example file contents would look like:
+[
+  {period: 22, payment: 3000},
+  {period: 30, payment: 2000}
+]
+
+> ruby lib/ledger_tools/finance.rb -p 39200000 -a 195720 -n 360 -c prepayments.json
+period,period_interest,period_principal
+1,142917,52803  
+2,142724,52996  
+3,142531,53189  
+4,142337,53383  
+5,142143,53577  
+6,141947,53773  
+7,141751,53969  
+8,141554,54166  
+9,141357,54363  
+10,141159,54561
+...
+```
+ 
 ## Testing
 
 Run rspec for ruby code
