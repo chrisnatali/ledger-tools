@@ -83,7 +83,7 @@ module LedgerTools
         transaction.to_ledger(io: output)
         # separate with blank line if not the last
         if index < (transactions.size - 1)
-          output.puts # blank line
+          output.puts
         end
       end
     end
@@ -103,12 +103,14 @@ module LedgerTools
 
     def record_to_transaction(record)
       @record = record
-      transaction = Model::Transaction.new(name: payee, date: date)
+      memo = "#{@record}".gsub(/\n/, "") # rm \n added by CSV::Row#to_s
+      transaction = Model::Transaction.new(name: payee, date: date, memo: memo)
+
       total = amount * DEFAULT_AMOUNT_FACTOR * transaction_type_factor
       main_entry = Model::Entry.new(
         account: account,
         amount: Money.new(total, DEFAULT_COMMODITY), # assumes amounts in dollars
-        memo: "#{@record}".gsub(/\n/, "")) # rm \n added by CSV::Row#to_s
+      )
       balance_entry = Model::Entry.new(
         account: @balance_account,
         amount: Money.new(-total, DEFAULT_COMMODITY))

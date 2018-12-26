@@ -9,6 +9,10 @@ module LedgerTools
     # Account --< Entry >-- Transaction
     #
     # An entry refers to an account by it's name for now
+    #
+    # Follows the plain-text-accounting ledger model
+
+    INDENT_SPACES = "    "
     class Account
       attr_accessor :name
       def initialize(name:)
@@ -17,35 +21,41 @@ module LedgerTools
     end
 
     class Entry
-      # amount should be a Money object (future:  allow Commodities)
+      # amount should be a Money object
       attr_accessor :account, :amount, :memo
       def initialize(account:, amount:, memo: nil)
         @account = account
         @amount = amount
-        @memo = memo
       end
 
       def to_ledger_string
-        space = "    "
-        entry_str =  "#{space}#{@account}  #{@amount.format}"
+        entry_str =  "#{INDENT_SPACES}#{@account}  #{@amount.format}"
         unless memo.nil?
-          entry_str = "#{space};#{@memo}\n#{entry_str}"
+          entry_str = "#{INDENT_SPACES};#{@memo}\n#{entry_str}"
         end
         entry_str
       end
     end
 
     class Transaction
-      attr_accessor :name, :date, :entries
-      def initialize(name:, date:, entries: nil)
+      attr_accessor :name, :date, :entries, :code, :memo
+      def initialize(name:, date:, entries: nil, code: nil, memo: nil)
         @name = name
         @date = date
         @entries = entries
+        @code = code
+        @memo = memo
       end
 
       def to_ledger(io:)
-        io.puts "#{@date.strftime('%Y-%m-%d')} #{@name}"
+        date_str = @date.strftime('%Y-%m-%d')
+        code_str = "(#{@code})" if @code
+        memo_str = "#{INDENT_SPACES};#{@memo}" if @memo
+
+        io.puts [date_str, code_str, name].compact.join(" ")
+        io.puts memo_str if memo_str
         entries.each { |entry| io.puts entry.to_ledger_string }
+
       end
 
       def to_ledger_string

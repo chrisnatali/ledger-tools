@@ -7,8 +7,7 @@ module LedgerTools
     let(:entry_salary) do 
       Model::Entry.new(
         account: "Income:Salary",
-        amount: Money.new(-1000_00, "USD"), 
-        memo: "paycheck 1") 
+        amount: Money.new(-1000_00, "USD"))
     end
     let(:entry_deposit) do 
       Model::Entry.new(
@@ -19,7 +18,8 @@ module LedgerTools
       Model::Transaction.new(
         name: "Employer Payment",
         date: Date.new(2017, 1, 3),
-        entries: [entry_salary, entry_deposit])
+        entries: [entry_salary, entry_deposit],
+        memo: "paycheck 1") 
     end
 
     describe Model::Account do
@@ -32,7 +32,7 @@ module LedgerTools
       describe "#to_ledger" do
         it "formats correctly" do
           expect(entry_salary.to_ledger_string).to eq(
-            "    ;paycheck 1\n    Income:Salary  $-1,000.00")
+            "    Income:Salary  $-1,000.00")
           expect(entry_deposit.to_ledger_string).to eq(
           "    Assets:Checking  $1,000.00")
         end
@@ -57,7 +57,8 @@ module LedgerTools
           Model::Transaction.new(
             name: "Employer Payment",
             date: Date.new(2017, 1, 3),
-            entries: [entry_salary, entry_deposit])
+            entries: [entry_salary, entry_deposit],
+            memo: "paycheck 1")
         end
         it "returns true when attributes are equal" do
           expect(transaction).to eq(transaction_compare)

@@ -110,8 +110,8 @@ module LedgerTools
           Assets:Checking  $-5.99
 
       2017-09-27 Paycheck
-          Assets:Checking  $900.20
           ;9/27/2017,MY PAYCHECK,900.20,credit
+          Assets:Checking  $900.20
           Income:Salary  $-900.20
       EOF
     end
@@ -134,8 +134,8 @@ module LedgerTools
           Assets:Checking  $-5.99
 
       2017-09-27 Paycheck
-          Assets:Checking  $900.20
           ;9/27/2017,MY PAYCHECK,,900.20
+          Assets:Checking  $900.20
           Income:Salary  $-900.20
       EOF
     end
@@ -146,13 +146,12 @@ module LedgerTools
       name, date, account, amount, commodity, balance_account, is_credit, memo)
       main = Entry.new(
         account: account,
-        amount: Money.new(amount, commodity),
-        memo: memo)
+        amount: Money.new(amount, commodity))
       balance = Entry.new(
         account: balance_account,
         amount: Money.new(-amount, commodity))
       entries = is_credit ? [balance, main] : [main, balance]
-      Transaction.new(name: name, date: date, entries: entries)
+      Transaction.new(name: name, date: date, entries: entries, memo: memo)
     end
 
     # Test data added as let vars
