@@ -1,5 +1,5 @@
 require 'money'
-Money.use_i18n = false
+Money.locale_backend = nil # :i18n  # use_i18n = false
 require 'ledger_tools/model'
 require 'ledger_tools/qif2ledger'
 require 'ledger_tools/csv2ledger'

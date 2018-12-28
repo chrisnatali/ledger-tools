@@ -26,36 +26,35 @@ module LedgerTools
       def initialize(account:, amount:, memo: nil)
         @account = account
         @amount = amount
+        @memo = memo
       end
 
       def to_ledger_string
-        entry_str =  "#{INDENT_SPACES}#{@account}  #{@amount.format}"
-        unless memo.nil?
-          entry_str = "#{INDENT_SPACES};#{@memo}\n#{entry_str}"
-        end
-        entry_str
+        entry_str =  "#{INDENT_SPACES}#{@account}  #{@amount.format(thousands_separator: ',')}"
+        memo_str = "#{@memo}" if !(@memo.nil? || @memo.empty?)
+        "#{entry_str}#{memo_str}"
       end
     end
 
     class Transaction
-      attr_accessor :name, :date, :entries, :code, :memo
-      def initialize(name:, date:, entries: nil, code: nil, memo: nil)
+      attr_accessor :name, :date, :entries, :code, :status, :memo
+      def initialize(name:, date:, entries: nil, code: nil, status: nil, memo: nil)
         @name = name
         @date = date
         @entries = entries
         @code = code
+        @status = status
         @memo = memo
       end
 
       def to_ledger(io:)
         date_str = @date.strftime('%Y-%m-%d')
-        code_str = "(#{@code})" if @code
-        memo_str = "#{INDENT_SPACES};#{@memo}" if @memo
+        status_str = "#{@status}" if !(@status.nil? || @status.empty?)
+        code_str = "(#{@code})" if !(@code.nil? || @code.empty?)
+        memo_str = "#{@memo}" if !(@memo.nil? || @memo.empty?)
 
-        io.puts [date_str, code_str, name].compact.join(" ")
-        io.puts memo_str if memo_str
+        io.puts "#{[date_str, status_str, code_str, name].compact.join(" ")}#{memo_str}"
         entries.each { |entry| io.puts entry.to_ledger_string }
-
       end
 
       def to_ledger_string

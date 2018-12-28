@@ -1,0 +1,14 @@
+#!/usr/bin/env ruby
+
+require 'optparse'
+require 'ledger_tools/ledger_csv2ledger'
+
+option_parser = OptionParser.new do |opts|
+  opts.banner = <<~EOF
+    Usage (csv on stdin and ledger file on stdout):
+    cat input.csv | csv_ledger2ledger > ledger_file.ledger
+    EOF
+end.parse!
+
+ledger_csv_2_ledger = LedgerTools::LedgerCSV2Ledger.new()
+ledger_csv_2_ledger.write_csv_as_ledger($stdin, $stdout)
