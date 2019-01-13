@@ -1,0 +1,43 @@
+#!/usr/bin/env ruby
+
+require 'optparse'
+require 'json'
+require 'ledger_tools/finance2csv'
+
+options = {}
+
+OptionParser.new do |parser|
+  parser.banner = "Usage:  finance2csv [parameters (at least 3)]"
+  parser.on('-pPRINCIPAL', '--principal=PRINCIPAL', Integer, 'The Principal amount of the annuity') do |v|
+    options[:principal] = v
+  end
+  parser.on('-aPAYMENT', '--payment=PAYMENT', Integer, 'The periodic payment of the annuity') do |v|
+    options[:payment] = v
+  end
+  parser.on('-nNUM_PERIODS', '--num_periods=NUM_PERIODS', Integer, 'The number of payment periods') do |v|
+    options[:num_periods] = v
+  end
+  parser.on('-iPERIODIC_INTEREST', '--periodic_interest=PERIODIC_INTEREST', Float, 'The periodic interest of the annuity') do |v|
+    options[:periodic_interest] = v
+  end
+  parser.on("-f", "--[no-]format_as_ledger_csv", "Format as ledger csv") do |v|
+    options[:format_as_ledger_csv] = v
+  end
+
+  prepayments_help = <<~EOF
+    Path to a json file with an array of hashes with :period, :payment keys
+
+    Example prepayments file contents (2 prepayments at period 22 and 30):
+    [
+      {period: 22, payment: 3000},
+      {period: 30, payment: 2000}
+    ]
+  EOF
+
+  parser.on('-cPREPAYMENTS', '--prepayments=PREPAYMENTS', String, prepayments_help) do |v|
+    options[:prepayments] = JSON.parse(File.read(v))
+  end
+end.parse!
+
+finance_2_csv = LedgerTools::Finance2CSV.new(options)
+finance_2_csv.write_csv($stdout)

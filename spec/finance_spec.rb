@@ -2,7 +2,7 @@ require 'spec_helper'
 
 # Require finance sub-module here since it's not required in spec_helper
 # and is NOT in the LedgerTools namespace (will be moved out eventually)
-require 'ledger_tools/finance'
+require 'finance'
 
 # TODO:  Test PV/FV for
 # - 0 interest

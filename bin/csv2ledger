@@ -9,7 +9,7 @@ config = {}
 option_parser = OptionParser.new do |opts|
   opts.banner = <<~EOF
     Usage (csv on stdin and ledger file on stdout):
-    cat input.csv | csv2ledger [--config config_file1.yaml] [--config config_file2.yaml]... > ledger_file.dat
+    cat input.csv | csv2ledger [--config config_file1.yaml] [--config config_file2.yaml]... > ledger_file.ledger
     EOF
   opts.on("-c", "--config config_file.yaml",
           "yaml configuration file") do |config_file|
