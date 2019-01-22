@@ -15,9 +15,6 @@ module LedgerTools
   # 
   # with entries being associated with their transaction via
   # the unique values in the transaction fields
-  #
-  # When using `hledger`, the txnidx field should be sufficient to distinguish
-  # entries from one transaction vs another
   class LedgerCSV2Ledger
 
     DEFAULT_AMOUNT_FACTOR = 100
@@ -34,6 +31,8 @@ module LedgerTools
         begin 
           transaction_values = record.to_h.values_at(*TRANSACTION_FIELDS)
           txn_idx, date, code, description, status, comment = transaction_values
+          # remove any newline/indentation/; chars from comment field
+          comment = comment.sub(/\s*[;]?/, "")
           date = Date.strptime(date, "%Y/%m/%d")
           transaction = (transactions[transaction_values] ||=
                          Model::Transaction.new(name: description, date: date, code: code, entries: [], status: status, memo: comment))
@@ -50,6 +49,8 @@ module LedgerTools
     def record_to_entry(record)
       # Ignore commodity field for now
       account, commodity, amount, comment = record.to_h.values_at(*ENTRY_FIELDS)
+      # remove any newline/indentation/; chars from comment field
+      comment = comment.sub(/\s*[;]?/, "")
       amount = amount.gsub(/[^\d^\.^-]/, '') if amount.is_a?(String)
       total = amount.to_f * DEFAULT_AMOUNT_FACTOR
       Model::Entry.new(
