@@ -31,7 +31,7 @@ module LedgerTools
 
       def to_ledger_string
         entry_str =  "#{INDENT_SPACES}#{@account}  #{@amount.format(thousands_separator: ',')}"
-        memo_str = "#{@memo}" if !(@memo.nil? || @memo.empty?)
+        memo_str = "\n#{INDENT_SPACES};#{@memo}" if !(@memo.nil? || @memo.empty?)
         "#{entry_str}#{memo_str}"
       end
     end
@@ -51,7 +51,7 @@ module LedgerTools
         date_str = @date.strftime('%Y-%m-%d')
         status_str = "#{@status}" if !(@status.nil? || @status.empty?)
         code_str = "(#{@code})" if !(@code.nil? || @code.empty?)
-        memo_str = "#{@memo}" if !(@memo.nil? || @memo.empty?)
+        memo_str = "\n#{INDENT_SPACES};#{@memo}" if !(@memo.nil? || @memo.empty?)
 
         io.puts "#{[date_str, status_str, code_str, name].compact.join(" ")}#{memo_str}"
         entries.each { |entry| io.puts entry.to_ledger_string }
