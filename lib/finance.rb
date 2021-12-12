@@ -13,7 +13,7 @@ module Finance
     #   periodic_interest: nil,
     #   payment: nil
     # )
-    def initialize(**kwargs)
+    def initialize(kwargs = {})
       # required params:  this will raise argument error
       required_params = { num_periods: Integer(kwargs[:num_periods]) }
 
