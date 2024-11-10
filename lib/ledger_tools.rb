@@ -1,5 +1,6 @@
 require 'money'
 Money.locale_backend = nil # :i18n  # use_i18n = false
+Money.rounding_mode = BigDecimal::ROUND_HALF_EVEN # Use half-even rounding throughout the library to ensure "fair" rounding
 require 'ledger_tools/model'
 require 'ledger_tools/qif2ledger'
 require 'ledger_tools/csv2ledger'
